@@ -34,8 +34,8 @@ class Position:
         if len(position_str) < 2:
             raise ValueError("Niepoprawna notacja pozycji")
         
-        x = ord(position_str[0].upper()) - 65  # A -> 0, B -> 1, itd.
-        y = int(position_str[1:]) - 1  # 1 -> 0, 2 -> 1, itd.
+        x = ord(position_str[0].upper()) - 65 
+        y = int(position_str[1:]) - 1 
         
         return cls(x, y)
 
@@ -60,6 +60,7 @@ class Clobber:
         self.winner = None
     
     def initialize_board(self, height, width):
+        """inicjalizacja planszy do gry"""
         board = []
 
         for y in range(height):

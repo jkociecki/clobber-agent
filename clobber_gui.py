@@ -230,5 +230,5 @@ class ClobberGUI:
         sys.exit()
 
 if __name__ == "__main__":
-    game_ui = ClobberGUI(6)
+    game_ui = ClobberGUI(10)
     game_ui.run()

@@ -1,9 +1,6 @@
-
 import copy
 import time
 from pygame.locals import *
-from clobber import *
-
 from clobber import Clobber, Piece, Position, Move
 
 class MinMax:
@@ -14,6 +11,15 @@ class MinMax:
             self.children = []
             self.value = None
             self.move = move
+
+        def generate_children(self):
+            legal_moves = self.state.get_legal_moves()
+            for move in legal_moves:
+                new_state = copy.deepcopy(self.state)
+                new_state.make_move(move)
+                child = MinMax.Node(new_state, parent=self, move=move)
+                self.children.append(child)
+            return self.children
 
         def __repr__(self):
             return f"Node(value={self.value}, move={self.move})"
@@ -27,81 +33,89 @@ class MinMax:
         self.max_depth = depth
         
     def get_best_move(self):
-        start_time = time.time()
         self.nodes_evaluated = 0
         root = self.Node(copy.deepcopy(self.clobber_engine))
+        
+        root.generate_children()
+        
+        if not root.children:
+            return None
+            
         best_value = self.minimax(root, self.max_depth, float('-inf'), float('inf'), True)
+        
         best_moves = []
         for child in root.children:
             if child.value == best_value:
                 best_moves.append(child.move)
+        
         best_move = best_moves[0] if best_moves else None
-        end_time = time.time()
-        print(f"Evaluated {self.nodes_evaluated} nodes")
-        print(f"Calculation time: {end_time - start_time:.3f} s")
-        print(f"Best move: {best_move} (value: {best_value})")
         return best_move
     
-    def minimax(self, node: Node, depth: int, alpha: float, beta: float, maximizing_player: bool):
-        self.nodes_evaluated += 1
-        if depth == 0 or node.state.game_over:
-            node.value = self.evaluate(node.state)
-            return node.value
-        legal_moves = node.state.get_legal_moves()
-        if not legal_moves:
-            node.value = self.evaluate(node.state)
-            return node.value
-        if maximizing_player:
-            best_value = float('-inf')
-            for move in legal_moves:
-                child_state = copy.deepcopy(node.state)
-                child_state.make_move(move)
-                child_node = self.Node(child_state, node, move)
-                node.children.append(child_node)
-                value = self.minimax(child_node, depth - 1, alpha, beta, False)
-                best_value = max(best_value, value)
-                alpha = max(alpha, best_value)
-                if beta <= alpha:
-                    break
-            node.value = best_value
-            return best_value
-        else:
-            best_value = float('inf')
-            for move in legal_moves:
-                child_state = copy.deepcopy(node.state)
-                child_state.make_move(move)
-                child_node = self.Node(child_state, node, move)
-                node.children.append(child_node)
-                value = self.minimax(child_node, depth - 1, alpha, beta, True)
-                best_value = min(best_value, value)
-                beta = min(beta, best_value)
-                if beta <= alpha:
-                    break
-            node.value = best_value
-            return best_value
     
-    def evaluate(self, state: Clobber):
-        if state.game_over:
-            if state.winner == Piece.BLACK:
-                return 1000
-            elif state.winner == Piece.WHITE:
-                return -1000
-            else:
-                return 0
-        original_turn = state.current_turn
-        state.current_turn = Piece.BLACK
-        black_moves = len(state.get_legal_moves())
-        state.current_turn = Piece.WHITE
-        white_moves = len(state.get_legal_moves())
-        state.current_turn = original_turn
-        black_pieces = 0
-        white_pieces = 0
-        for row in state.board:
-            for piece in row:
-                if piece == Piece.BLACK:
-                    black_pieces += 1
-                elif piece == Piece.WHITE:
-                    white_pieces += 1
-        mobility_score = black_moves - white_moves
-        piece_score = black_pieces - white_pieces
-        return mobility_score * 3 + piece_score
+    def minimax(self, node: Node, depth: int, alpha: float, beta: float, maximizing_player: bool):
+        if depth == 0 or node.state.game_over:
+            node.value = self.evaluate(node)
+            self.nodes_evaluated += 1
+            return node.value
+        
+        if not node.children:
+            node.generate_children()
+            
+        if not node.children:
+            node.value = self.evaluate(node)
+            self.nodes_evaluated += 1
+            return node.value
+        
+        if maximizing_player:
+            value = float('-inf')
+            
+            for child in node.children:
+                child_value = self.minimax(child, depth-1, alpha, beta, False)
+                value = max(value, child_value)
+                alpha = max(alpha, value)
+                
+                if beta <= alpha:
+                    break
+                    
+            node.value = value
+            return value
+        
+        else: 
+            value = float('inf')
+            
+            for child in node.children:
+                child_value = self.minimax(child, depth-1, alpha, beta, True)
+                value = min(value, child_value)
+                beta = min(beta, value)
+                
+                # Przycinanie alfa-beta
+                if beta <= alpha:
+                    break
+                    
+            node.value = value
+            return value
+            
+    def evaluate(self, node: Node):
+        """
+        Funkcja oceny stanu gry. Implementacja zależy od specyfiki gry Clobber.
+        Przykładowa implementacja może brać pod uwagę liczbę dostępnych ruchów
+        dla każdego gracza, kontrolę nad planszą, lub inne metryki strategiczne.
+        """
+
+        if node.state.game_over:
+            current_player = node.state.current_turn
+            return -1000 if current_player == Piece.WHITE else 1000
+        
+        original_turn = node.state.current_turn
+
+        node.state.current_turn = Piece.WHITE
+        white_moves = len(node.state.get_legal_moves())
+        
+        node.state.current_turn = Piece.BLACK
+        black_moves = len(node.state.get_legal_moves())
+        
+        node.state.current_turn = original_turn
+
+        mobility_score = white_moves - black_moves
+        
+        return mobility_score
