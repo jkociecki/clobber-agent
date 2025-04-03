@@ -30,7 +30,6 @@ class Position:
     
     @classmethod
     def from_string(cls, position_str):
-        """Konwertuje notację (np. 'A1') na obiekt Position."""
         if len(position_str) < 2:
             raise ValueError("Niepoprawna notacja pozycji")
         
@@ -60,7 +59,8 @@ class Clobber:
         self.winner = None
     
     def initialize_board(self, height, width):
-        """inicjalizacja planszy do gry"""
+        """Initializing the game board for a given height and width."""
+
         board = []
 
         for y in range(height):
@@ -75,20 +75,26 @@ class Clobber:
         return board
     
     def get_piece(self, position):
-        """Pobiera pionek na danej pozycji."""
+        """Return the piece at the given position."""
+
         if 0 <= position.x < self.width and 0 <= position.y < self.height:
             return self.board[position.y][position.x]
         return None
     
     def set_piece(self, position, piece):
-        """Ustawia pionek na danej pozycji."""
+        """Sets the piece at the given position."""
+
         if 0 <= position.x < self.width and 0 <= position.y < self.height:
             self.board[position.y][position.x] = piece
     
     def get_adjacent_positions(self, position):
-        """Zwraca listę sąsiednich pozycji."""
+        """
+            Return the adjacent positions of the given position
+            (up, right, down, left).
+        """
+
         adjacent = []
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # góra, prawo, dół, lewo
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)] 
         
         for dx, dy in directions:
             new_x, new_y = position.x + dx, position.y + dy
@@ -98,7 +104,9 @@ class Clobber:
         return adjacent
     
     def is_legal_move(self, move):
-        """Sprawdza, czy ruch jest legalny."""
+        """Checks if the move is legal."""
+
+
         if self.game_over:
             return False
         
@@ -122,7 +130,9 @@ class Clobber:
         return True
     
     def make_move(self, move):
-        """Wykonuje ruch na planszy."""
+        """Executes the move if it is legal."""
+
+
         if not self.is_legal_move(move):
             return False
         
@@ -140,7 +150,12 @@ class Clobber:
         return True
     
     def has_legal_moves(self):
-        """Sprawdza, czy aktualny gracz ma jakiekolwiek legalne ruchy."""
+        """
+            Checks if the current player has any legal moves.
+            If not, the game is over.
+        """
+
+
         for y in range(self.height):
             for x in range(self.width):
                 pos = Position(x, y)
@@ -152,7 +167,9 @@ class Clobber:
         return False
     
     def get_legal_moves(self):
-        """Zwraca listę wszystkich legalnych ruchów dla aktualnego gracza."""
+        """Return the list of legal moves for the current player."""
+
+
         legal_moves = []
         for y in range(self.height):
             for x in range(self.width):
@@ -165,7 +182,9 @@ class Clobber:
         return legal_moves
     
     def parse_move(self, move_str):
-        """Konwertuje notację ruchu (np. 'A1-B1') na obiekt Move."""
+        """Converts eg. 'A1-B1' to a Move object."""
+
+
         parts = move_str.split('-')
         if len(parts) != 2:
             raise ValueError("Niepoprawna notacja ruchu. Użyj formatu: 'A1-B1'")
@@ -186,7 +205,6 @@ class Clobber:
             print(" ".join(str(piece) for piece in row))
     
     def get_game_state(self):
-        """Zwraca aktualny stan gry."""
         return {
             'board': self.board,
             'current_turn': self.current_turn,
@@ -195,28 +213,11 @@ class Clobber:
             'moves_history': self.moves_history
         }
     
-    def undo_move(self):
-        """Cofa ostatni ruch."""
-        if not self.moves_history:
-            return False
-        
-        last_move = self.moves_history.pop()
-        
-        self.current_turn = Piece.WHITE if self.current_turn == Piece.BLACK else Piece.BLACK
-        
-        self.set_piece(last_move.start, self.current_turn)
-        
-        opponent = Piece.WHITE if self.current_turn == Piece.BLACK else Piece.BLACK
-        self.set_piece(last_move.end, opponent)
-        
-        self.game_over = False
-        self.winner = None
-        
-        return True
+
 
 
 if __name__ == '__main__':
-    game = Clobber(6, 6)  # Standardowa plansza 6x6
+    game = Clobber(6, 6) 
     
     print("Witaj w grze Clobber!")
     game.print_board()

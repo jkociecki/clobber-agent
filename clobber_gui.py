@@ -45,8 +45,8 @@ class ClobberAIvsAI:
             ConnectivityStrategy(),
             PositionalStrategy(),
         ]
-        self.white_ai = AIPlayer(Piece.WHITE, self.available_strategies[0], max_depth=3, name="AI White")
-        self.black_ai = AIPlayer(Piece.BLACK, self.available_strategies[1], max_depth=3, name="AI Black")
+        self.white_ai = AIPlayer(Piece.WHITE, self.available_strategies[0], max_depth=6, name="AI White")
+        self.black_ai = AIPlayer(Piece.BLACK, self.available_strategies[1], max_depth=1, name="AI Black")
         self.ai_thinking = False
         self.move_delay = 1.0
         self.last_move_time = 0
@@ -324,8 +324,8 @@ class StrategyTournament:
         self.games_per_matchup = games_per_matchup
         self.strategies = [
             AdaptiveStrategy(),
-            AggressiveStrategy(), 
-            DefensiveStrategy(),
+            PositionalStrategy(), 
+            MobilityStrategy(),
             # Dodaj więcej strategii
         ]
         self.results = {}
