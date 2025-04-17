@@ -1,62 +1,69 @@
-from src.clobber import Clobber
-from src.general.enums import Piece
-from src.general.move import Move
-from rich.console import Console
-from rich.table import Table
-from rich.prompt import Prompt
-from rich import box
+from clobber.clobber import Clobber
+from clobber.clobber_strategy import NaiveStrategy
+from agents.mcts import MCTS
+from agents.minmax import MinMax
+from general.enums import Piece
+import os
 
-console = Console()
+def print_board(board, current_player):
+    os.system("clear")  # dla Linux/macOS (czyści terminal)
 
+    print(f"Current Player: {'BLACK' if current_player == Piece.BLACK else 'WHITE'}")
+    print("    " + "  ".join(str(i) for i in range(len(board[0]))))  # kolumny
+    print("   " + "---" * len(board[0]))
 
-def draw_board(game: Clobber):
-    table = Table(title=f"Clobber - Current Player: {'⚫' if game.current_player == Piece.BLACK else '⚪'}",
-                  box=box.SQUARE)
-
-    for x in range(game.width):
-        table.add_column(str(x), justify="center")
-
-    for y, row in enumerate(game.board):
-        row_display = []
+    for y, row in enumerate(board):
+        line = f"{y} | "
         for piece in row:
-            if piece == Piece.WHITE:
-                row_display.append("⚪")
-            elif piece == Piece.BLACK:
-                row_display.append("⚫")
+            if piece == Piece.BLACK:
+                line += f"\033[1;30mB\033[0m  "  # bold black
+            elif piece == Piece.WHITE:
+                line += f"\033[1;37mW\033[0m  "  # bold white
             else:
-                row_display.append("·")
-        table.add_row(*row_display, end_section=False)
-
-    console.clear()
-    console.print(table)
-
+                line += ".  "
+        print(line)
+    print()
 
 def main():
     game = Clobber(5, 5)
 
-    while True:
-        draw_board(game)
+    # Utwórz agentów różnych typów
+    black_agent = MinMax(depth=3, strategy=NaiveStrategy(), player=Piece.WHITE)
+    white_agent = MCTS(player=Piece.BLACK, simulation_time=1.0)
 
-        if game.is_terminal():
-            winner = "⚫" if game.current_player == Piece.WHITE else "⚪"
-            console.print(f"[bold green]Gra zakończona! Zwycięzca: {winner}[/bold green]")
+    agents = {
+        Piece.WHITE: black_agent,
+        Piece.BLACK: white_agent
+    }
+
+    turn = 1
+    print_board(game.board, game.current_player)
+
+    while not game.is_terminal():
+        agent = agents[game.current_player]
+        move = agent.choose_move(game)
+
+        if move is None:
+            print("No legal moves left.")
             break
 
-        console.print("[cyan]Podaj ruch: najpierw skąd, potem dokąd (format: x y)[/cyan]")
+        # Dodaj informację o typie agenta
+        agent_type = "MinMax" if isinstance(agent, MinMax) else "MCTS"
+        print(f"Turn {turn}: Player {'BLACK' if game.current_player == Piece.BLACK else 'WHITE'} ({agent_type}) moves from {move.from_pos} to {move.to_pos}")
+        
+        game.make_move(move)
 
-        try:
-            fx, fy = map(int, Prompt.ask("Z").split())
-            tx, ty = map(int, Prompt.ask("Do").split())
+        print_board(game.board, game.current_player)
+        input("Press Enter for next move...")
+        turn += 1
 
-            move = Move(from_pos=(fx, fy), to_pos=(tx, ty))
-            print(game.get_legal_moves())
-            print(move)
-            if move in game.get_legal_moves():
-                game.make_move(move)
-            else:
-                console.print("[red]Nieprawidłowy ruch![/red]")
-        except Exception as e:
-            console.print(f"[red]Błąd wejścia: {e}[/red]")
+    # Po zakończeniu gry – przeciwnik aktualnego gracza wygrywa
+    winner = ~game.current_player
+    winner_agent = "MinMax" if winner == Piece.WHITE else "MCTS"
+    print(f"\n\033[1;32mGame Over! Winner: {'BLACK' if winner == Piece.BLACK else 'WHITE'} ({winner_agent}) 🎉\033[0m\n")
+
+
+
 
 
 if __name__ == '__main__':

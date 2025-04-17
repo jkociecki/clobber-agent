@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-from src.general.move import Move
+from general.move import Move
 
 
 class GameState(ABC):
@@ -22,5 +22,9 @@ class GameState(ABC):
         pass
 
     @abstractmethod
-    def evaluate(self):
+    def get_board(self):
+        pass
+
+    @abstractmethod
+    def get_current_player(self):
         pass

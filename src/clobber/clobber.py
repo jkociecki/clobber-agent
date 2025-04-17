@@ -1,7 +1,7 @@
 from typing import List, Tuple
-from src.general.enums import Piece
-from src.general.game import GameState
-from src.general.move import Move
+from general.enums import Piece
+from general.game import GameState
+from general.move import Move
 
 
 class Clobber(GameState):
@@ -76,12 +76,15 @@ class Clobber(GameState):
 
         return len(self.get_legal_moves()) == 0
 
+    def get_board(self):
+        return self.board
+    
+    def get_current_player(self):
+        return self.current_player
+    
     def get_initial_state(self):
         pass
 
-    def evaluate(self):
-
-        return 10
 
 
 if __name__ == '__main__':
