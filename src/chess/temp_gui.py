@@ -4,8 +4,10 @@ from typing import List, Tuple, Optional
 from general.game import GameState
 from general.move import Move
 from general.enums import Piece
-from chess_piece import ChessPiece
-from chess_state import Chess
+from chess.chess_piece import ChessPiece
+from chess.chess_state import Chess
+from chess.chess_strategy import NaiveChessStrategy, AdaptiveChessStrategy
+from agents.minmax import MinMax
 
 # Initialize Pygame
 pygame.init()
@@ -36,6 +38,7 @@ def load_images():
 
 
 def draw_board(screen):
+    """Draw the chess board."""
     for row in range(8):
         for col in range(8):
             color = LIGHT_SQUARE if (row + col) % 2 == 0 else DARK_SQUARE
@@ -44,6 +47,7 @@ def draw_board(screen):
 
 
 def draw_pieces(screen, board):
+    """Draw the chess pieces on the board."""
     for row in range(8):
         for col in range(8):
             piece = board[row][col]
@@ -54,6 +58,7 @@ def draw_pieces(screen, board):
 
 
 def get_piece_code(piece: ChessPiece) -> str:
+    """Convert ChessPiece to image code."""
     piece_dict = {
         ChessPiece.WHITE_PAWN: 'wp',
         ChessPiece.WHITE_KNIGHT: 'wn',
@@ -72,6 +77,7 @@ def get_piece_code(piece: ChessPiece) -> str:
 
 
 def highlight_squares(screen, selected_pos, legal_moves):
+    """Highlight selected piece and legal moves."""
     if selected_pos:
         row, col = selected_pos
         s = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
@@ -88,6 +94,7 @@ def highlight_squares(screen, selected_pos, legal_moves):
 
 
 def get_square_from_mouse(pos):
+    """Convert mouse position to board coordinates."""
     x, y = pos
     col = x // SQUARE_SIZE
     row = y // SQUARE_SIZE
@@ -97,16 +104,20 @@ def get_square_from_mouse(pos):
 
 
 def handle_promotion(screen, chess_game, move, from_pos, to_pos):
+    """Handle pawn promotion."""
     row, col = from_pos
     piece = chess_game.board[row][col]
 
+    # Check if this is a pawn that can be promoted
     if (piece == ChessPiece.WHITE_PAWN and to_pos[0] == 0) or \
             (piece == ChessPiece.BLACK_PAWN and to_pos[0] == 7):
 
+        # Set up promotion menu
         promotion_options = ['Q', 'R', 'B', 'N']
         option_rects = []
         color = WHITE if piece.color == Piece.WHITE else BLACK
 
+        # Draw promotion options
         pygame.draw.rect(screen, (200, 200, 200), (WINDOW_SIZE // 4, WINDOW_SIZE // 3,
                                                    WINDOW_SIZE // 2, WINDOW_SIZE // 3))
         font = pygame.font.SysFont('Arial', 24)
@@ -121,6 +132,7 @@ def handle_promotion(screen, chess_game, move, from_pos, to_pos):
             option_rects.append(option_rect)
             pygame.draw.rect(screen, LIGHT_SQUARE, option_rect)
 
+            # Draw piece image or text
             if option == 'Q':
                 piece_code = 'wq' if piece.color == Piece.WHITE else 'bq'
             elif option == 'R':
@@ -134,6 +146,7 @@ def handle_promotion(screen, chess_game, move, from_pos, to_pos):
 
         pygame.display.update()
 
+        # Wait for user selection
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -151,25 +164,35 @@ def handle_promotion(screen, chess_game, move, from_pos, to_pos):
 
 
 def main():
+    """Main function to run the chess game."""
+    # Create the chess game
+    chess_game = Chess(fen_notation='1r6/2k5/8/8/8/8/3K4/8 w - - 0 1')
 
-    chess_game = Chess()
-
+    # Set up the display
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-    pygame.display.set_caption('Chess')
+    pygame.display.set_caption('Chess vs AI')
     clock = pygame.time.Clock()
 
+    # Load piece images
     load_images()
 
+    # Game variables
     selected_pos = None
     legal_moves = chess_game.get_legal_moves()
 
+    # Init AI
+    strategy = NaiveChessStrategy()
+    strategy2 = AdaptiveChessStrategy()
+    ai = MinMax(Piece.BLACK, depth=5, strategy=strategy2)
+
+    # Game loop
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN and chess_game.current_player == Piece.WHITE:
                 pos = pygame.mouse.get_pos()
                 square = get_square_from_mouse(pos)
 
@@ -180,46 +203,21 @@ def main():
                     if selected_pos is None:
                         if piece != ChessPiece.EMPTY and piece.color == chess_game.current_player:
                             selected_pos = square
-
                     else:
-                        from_row, from_col = selected_pos
                         move = next((m for m in legal_moves if m.from_pos == selected_pos and m.to_pos == square), None)
 
                         if move:
-                            if chess_game.board[from_row][from_col] in [ChessPiece.WHITE_PAWN,
-                                                                        ChessPiece.BLACK_PAWN] and \
-                                    ((chess_game.board[from_row][from_col] == ChessPiece.WHITE_PAWN and square[
-                                        0] == 0) or \
-                                     (chess_game.board[from_row][from_col] == ChessPiece.BLACK_PAWN and square[
-                                         0] == 7)):
+                            from_row, from_col = selected_pos
+
+                            # Promotion check
+                            if chess_game.board[from_row][from_col] in [ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN] and \
+                                    ((chess_game.board[from_row][from_col] == ChessPiece.WHITE_PAWN and square[0] == 0) or
+                                     (chess_game.board[from_row][from_col] == ChessPiece.BLACK_PAWN and square[0] == 7)):
                                 move = handle_promotion(screen, chess_game, move, selected_pos, square)
 
                             chess_game.make_move(move)
                             legal_moves = chess_game.get_legal_moves()
                             selected_pos = None
-
-                            if chess_game.is_terminal():
-                                print("Game Over!")
-                                if not legal_moves:
-                                    opponent = Piece.BLACK if chess_game.current_player == Piece.WHITE else Piece.WHITE
-                                    king_pos = None
-                                    for r in range(8):
-                                        for c in range(8):
-                                            if chess_game.board[r][c] in [ChessPiece.WHITE_KING,
-                                                                          ChessPiece.BLACK_KING] and \
-                                                    chess_game.board[r][c].color == chess_game.current_player:
-                                                king_pos = (r, c)
-                                                break
-                                        if king_pos:
-                                            break
-
-                                    if king_pos and chess_game._is_square_attacked(king_pos[0], king_pos[1], opponent):
-                                        print("Checkmate! {} wins.".format(
-                                            "White" if opponent == Piece.WHITE else "Black"))
-                                    else:
-                                        print("Stalemate! Draw.")
-                                else:
-                                    print("Draw due to insufficient material or 50-move rule.")
 
                         elif piece != ChessPiece.EMPTY and piece.color == chess_game.current_player:
                             selected_pos = square
@@ -232,6 +230,14 @@ def main():
                     selected_pos = None
                     legal_moves = chess_game.get_legal_moves()
 
+        # AI Turn
+        if chess_game.current_player == Piece.BLACK and not chess_game.is_terminal():
+            ai_move = ai.choose_move(chess_game)
+            if ai_move:
+                chess_game.make_move(ai_move)
+                legal_moves = chess_game.get_legal_moves()
+
+        # Draw everything
         draw_board(screen)
         highlight_squares(screen, selected_pos, legal_moves)
         draw_pieces(screen, chess_game.board)
