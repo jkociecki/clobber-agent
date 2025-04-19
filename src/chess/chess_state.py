@@ -7,6 +7,7 @@ from chess.chess_piece import ChessPiece
 
 
 class Chess(GameState):
+
     DEFAULT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
     def __init__(self, fen_notation=DEFAULT_FEN):
@@ -260,6 +261,38 @@ class Chess(GameState):
 
         return False
 
+    def get_fen(self) -> str:
+        board_str = ''
+        for row in self.board:
+            empty_count = 0
+            for piece in row:
+                if piece == ChessPiece.EMPTY:
+                    empty_count += 1
+                else:
+                    if empty_count > 0:
+                        board_str += str(empty_count)
+                        empty_count = 0
+                    board_str += str(piece)
+            if empty_count > 0:
+                board_str += str(empty_count)
+            board_str += '/'
+
+        board_str = board_str[:-1]
+        player = 'w' if self.current_player == Piece.WHITE else 'b'
+        castle = ''
+        if self.white_castle_king_side:
+            castle += 'K'
+        if self.white_castle_queen_side:
+            castle += 'Q'
+        if self.black_castle_king_side:
+            castle += 'k'
+        if self.black_castle_queen_side:
+            castle += 'q'
+        if not castle:
+            castle = '-'
+        enpassant = '-' if self.enpassant_square is None else chr(self.enpassant_square[1] + ord('a')) + str(8 - self.enpassant_square[0])
+        return f"{board_str} {player} {castle} {enpassant} {self.halfmove} {self.fullmove}"
+
     def _algebraic_to_coords(self, algebraic: str) -> Tuple[int, int]:
         if len(algebraic) != 2:
             return None
@@ -284,7 +317,5 @@ if __name__ == '__main__':
         done = chess.is_terminal()
 
         board = chess.get_board()
-
-        for row in board:
-            print(' '.join(str(piece) for piece in row))
+        print(chess.get_fen())
         print()

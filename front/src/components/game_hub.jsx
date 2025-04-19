@@ -1,6 +1,6 @@
 import { useState } from "react";
-import ChessBoard from "./chess/board.jsx";
-import ClobberBoard from "./clobber/clobber_board.jsx";
+import ChessBoard from "./chess/ChessBoard.jsx";
+import ClobberBoard from "./clobber/ClobberBoard.jsx";
 import TicTacToeBoard from "./tictactoe/tictactoe_board.jsx";
 import '../index.css';
 
